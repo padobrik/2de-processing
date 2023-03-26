@@ -2,7 +2,9 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+
 from typing import Union
+from PIL import Image
 # from sklearn.preprocessing import normalize
 
 class SpotDetector:
@@ -10,16 +12,21 @@ class SpotDetector:
         self.current_path = os.getcwd()
         self.files_path = f'{self.current_path}/files'
 
-    def _read_image(self, path: str) -> np.ndarray:
+    def _read_images(self, path: str) -> np.ndarray:
         """
         Reads image according to the provided paths in __init__(),
         Returns grayscale version using CV2 lib
         """
-        image = cv2.imread(path)
-        if len(image.shape) < 3:
-            return image
-        grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        return grayscale
+        images = []
+        for filename in os.listdir(input_folder):
+            if filename.endswith('.tiff') or filename.endswith('.tif'):
+                img = Image.open(os.path.join(input_folder, filename))
+                img = img.convert('L')  # Преобразование в оттенки серого
+                img_np = np.array(img).astype(np.uint8)
+                if img_np is not None:
+                    img_3_channels = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)  # Преобразование в 3 канала
+                    images.append(img_3_channels)
+        return images
 
     def _clahe(self, image: np.ndarray, clip_limit: Union[int, float], grid: tuple) -> np.ndarray:
         """
@@ -100,7 +107,7 @@ class SpotDetector:
 
 if __name__ == "__main__":
     sd = SpotDetector()
-    image = sd._read_image(f'{sd.files_path}/test.tiff')
+    images = sd._read_images(f'{sd.files_path}/test.tiff')
     with_clahe = sd._clahe(image, 2.5, (1,1))
     with_threshold = sd._threshold(with_clahe, 0, 255)
     adaptive = sd._adaptive_threshold(with_clahe, 255, 75, 5)
