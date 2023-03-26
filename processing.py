@@ -108,7 +108,45 @@ class SpotDetector:
 class ImageProcessor:
     def __init__(self, sd: SpotDetector) -> None:
         self.sd = sd
+    
+    def save_images(self, images, output_folder) -> None:
+        os.makedirs(output_folder, exist_ok=True)
+        for i, img in enumerate(images):
+            cv2.imwrite(os.path.join(output_folder, f'aligned_image_{i}.tif'), img)
 
+    def process_images(self, input_folder: str, output_folder: str) -> None:
+        images = self.sd._read_images(input_folder)
+        if len(images) > 0:
+            aligned_images = self.align_images(images)
+            self.save_images(aligned_images, output_folder)
+            for idx, image in enumerate(aligned_images):
+                print(f"Processing image {idx + 1}/{len(aligned_images)}")
+                self.ip.process_image(image)
+        else:
+            print("No images found.")
+
+    def display_image_pairs(self, raw_folder: str, aligned_folder: str):
+        raw_images = self.sd._read_images(raw_folder)
+        aligned_images = self.sd._read_images(aligned_folder)
+
+        if len(raw_images) != len(aligned_images):
+            print("The number of raw images and aligned images does not match.")
+            return
+
+        num_images = len(raw_images)
+        fig, axs = plt.subplots(num_images, 2, figsize=(10, num_images * 5))
+
+        for i in range(num_images):
+            axs[i, 0].imshow(cv2.cvtColor(raw_images[i], cv2.COLOR_BGR2RGB))
+            axs[i, 0].set_title(f"Raw Image {i+1}", fontsize=16)
+            axs[i, 0].axis('off')
+
+            axs[i, 1].imshow(cv2.cvtColor(aligned_images[i], cv2.COLOR_BGR2RGB))
+            axs[i, 1].set_title(f"Aligned Image {i+1}", fontsize=16)
+            axs[i, 1].axis('off')
+
+        plt.tight_layout()
+        plt.show()
     def process_image(self, image: np.ndarray) -> None:
         """
         Processes a single image using the SpotDetector methods to apply
@@ -128,10 +166,10 @@ class ImageProcessor:
 if __name__ == "__main__":
     sd = SpotDetector()
     ip = ImageProcessor(sd)
-    images = sd._read_images(f'{sd.files_path}')
-    if len(images) > 0:
-        for idx, image in enumerate(images):
-            print(f"Processing image {idx + 1}/{len(images)}")
-            ip.process_image(image)
-    else:
-        print("No images found.")
+    ia = ImageAligner(sd, ip)
+
+    raw_folder = f'{sd.files_path}/raw'
+    aligned_folder = f'{sd.files_path}/aligned'
+
+    ia.process_images(raw_folder, aligned_folder)
+    ia.display_image_pairs(raw_folder, aligned_folder)
