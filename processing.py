@@ -12,7 +12,7 @@ class SpotDetector:
         self.current_path = os.getcwd()
         self.files_path = f'{self.current_path}/files'
 
-    def _read_images(self, path: str) -> np.ndarray:
+    def _read_images(self, input_folder: str) -> np.ndarray:
         """
         Reads image according to the provided paths in __init__(),
         Returns grayscale version using CV2 lib
@@ -21,10 +21,10 @@ class SpotDetector:
         for filename in os.listdir(input_folder):
             if filename.endswith('.tiff') or filename.endswith('.tif'):
                 img = Image.open(os.path.join(input_folder, filename))
-                img = img.convert('L')  # Преобразование в оттенки серого
+                img = img.convert('L')
                 img_np = np.array(img).astype(np.uint8)
                 if img_np is not None:
-                    img_3_channels = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)  # Преобразование в 3 канала
+                    img_3_channels = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
                     images.append(img_3_channels)
         return images
 
@@ -105,12 +105,33 @@ class SpotDetector:
         plt.show()
 
 
+class ImageProcessor:
+    def __init__(self, sd: SpotDetector) -> None:
+        self.sd = sd
+
+    def process_image(self, image: np.ndarray) -> None:
+        """
+        Processes a single image using the SpotDetector methods to apply
+        CLAHE, threshold, adaptive threshold, morphology, and contour detection.
+        Draws the detected contours on the image and displays the result.
+        
+        Args:
+            image: A numpy array representing the input image.
+        """
+        with_clahe = self.sd._clahe(image, 2.5, (1,1))
+        with_threshold = self.sd._threshold(with_clahe, 0, 255)
+        adaptive = self.sd._adaptive_threshold(with_clahe, 255, 75, 5)
+        blob = self.sd._apply_morphology(adaptive)
+        contours = self.sd._get_contours(blob)
+        self.sd._draw_contours(image, contours)
+
 if __name__ == "__main__":
     sd = SpotDetector()
-    images = sd._read_images(f'{sd.files_path}/test.tiff')
-    with_clahe = sd._clahe(image, 2.5, (1,1))
-    with_threshold = sd._threshold(with_clahe, 0, 255)
-    adaptive = sd._adaptive_threshold(with_clahe, 255, 75, 5)
-    blob = sd._apply_morphology(adaptive)
-    contours = sd._get_contours(blob)
-    sd._draw_contours(image, contours)
+    ip = ImageProcessor(sd)
+    images = sd._read_images(f'{sd.files_path}')
+    if len(images) > 0:
+        for idx, image in enumerate(images):
+            print(f"Processing image {idx + 1}/{len(images)}")
+            ip.process_image(image)
+    else:
+        print("No images found.")
