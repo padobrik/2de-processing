@@ -1,11 +1,14 @@
 # 2de-processing
 
-## Description
+# Description <a name="description"></a>
 Final research project dedicated to the development of the web service that helps proteomics scientists fast and qualitatively process their 2DE images and upload final result to PNPI database
 
-## Content
+# Table of Contents
+- [Description](#description)
+- [Table of Contents](#table-of-contents)
+- [Image Preprocessing](#image-preprocessing)
 
-## Image Preprocessing
+## Image Preprocessing <a name="image-preprocessing"></a>
 Implements now within `preprocessors/naive_detector.py` and includes next steps:
 
 1. Import **TIFF** image
